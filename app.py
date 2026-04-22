@@ -1038,7 +1038,7 @@ def render_analytics():
                 x=worker_names,
                 y=efficiency_scores,
                 color=efficiency_scores,
-                color_continuous_scale='rdygn'
+                color_continuous_scale='RdYlGn'
             )
             fig.update_layout(
                 xaxis_title="Worker",
