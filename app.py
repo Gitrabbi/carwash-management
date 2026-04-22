@@ -512,12 +512,13 @@ def render_work_orders():
                         st.write(order)
                         return
                     
-                    st.info(f"""
-                    **Order:** {order_id}<br>
-                    **Customer:** {customer}<br>
-                    **Current Worker:** {worker}
+                    st.markdown(f"""
+                    <div style="background-color:#e8f4fd; padding:10px; border-radius:5px;">
+                    <b>Order:</b> {order_id}<br>
+                    <b>Customer:</b> {customer}<br>
+                    <b>Current Worker:</b> {worker}
+                    </div>
                     """, unsafe_allow_html=True)
-                
                 # -------- RIGHT: NEW -------- #
                 with col2:
                     st.markdown("#### New Assignment")
