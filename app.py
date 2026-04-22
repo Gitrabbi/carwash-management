@@ -416,8 +416,13 @@ def sidebar_navigation():
 
 def render_dashboard():
     """Render main dashboard with key metrics and visualizations"""
-    st.markdown('<h1 class="main-header">Dashboard</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Real-time overview of your car wash operations</p>', unsafe_allow_html=True)
+   render_page_header(
+    title="Car Wash Dashboard",
+    subtitle="Real-time operations overview",
+    icon="🚘",
+    icon_class="icon-blue",
+    show_live=True
+)
     
     # Initialize analytics
     analytics = CarWashAnalytics(db)
