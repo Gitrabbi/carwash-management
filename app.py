@@ -413,7 +413,7 @@ def render_work_orders():
                 st.markdown("#### Services")
                 
                 # Get available services for selected vehicle type
-                services = db.get_all_services(vehicle_type=vehicle_type if vehicle_type else None)
+                services = db.get_all_services
                 
                 if services:
                     selected_services = []
