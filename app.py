@@ -428,7 +428,7 @@ render_page_header(
 analytics = CarWashAnalytics(db)
     
     # Date range selector
-    col1, col2, col3 = st.columns([2, 1, 1])
+col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
         date_range = st.selectbox(
             "Select Date Range",
