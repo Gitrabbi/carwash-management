@@ -14,6 +14,8 @@ import uuid
 from database import Database, db
 from analytics import CarWashAnalytics
 from reports import ReportGenerator
+from datetime import datetime, timedelta
+from streamlit_autorefresh import st_autorefresh
 
 # Page configuration
 st.set_page_config(
@@ -476,23 +478,19 @@ def render_work_orders():
     with tabs[1]:
         st.markdown("### Active Orders")
 
-        filter_col1, filter_col2, filter_col3 = st.columns(3)
-
-        with filter_col1:
+        col1, col2, col3 = st.columns(3)
+        with col1:
             status_filter = st.multiselect(
                 "Filter by Status",
                 ["pending", "in_progress", "completed", "cancelled"],
                 default=["pending", "in_progress"]
             )
-
-        with filter_col2:
-            all_workers = db.get_all_workers()
+        with col2:
             worker_filter = st.selectbox(
                 "Filter by Worker",
-                ["All Workers"] + [w["name"] for w in all_workers]
+                ["All Workers"] + [w["name"] for w in db.get_all_workers()]
             )
-
-        with filter_col3:
+        with col3:
             search = st.text_input("Search Order ID / Customer / Plate", placeholder="Enter search term")
 
         orders = db.get_all_work_orders()
@@ -512,30 +510,50 @@ def render_work_orders():
                 or q in str(o.get("plate_number", "")).lower()
             ]
 
-        if not orders:
-            st.info("No active orders found matching your criteria.")
-        else:
-            st.markdown(f"Showing {min(20, len(orders))} of {len(orders)} orders")
-
-            workers = db.get_all_workers()
-            worker_names = ["Unassigned"] + [w["name"] for w in workers]
-
+        if orders:
             for order in orders[:20]:
                 order_id = str(order.get("id", ""))
-                customer_name = order.get("customer_name", "")
-                plate_number = order.get("plate_number", "")
-                vehicle_type = order.get("vehicle_type", "")
-                status = order.get("status", "")
-                priority = order.get("priority", "normal")
+                created_at = order.get("created_at")
+                started_at = order.get("started_at")
+                ended_at = order.get("ended_at")
+                status = order.get("status", "pending")
+                worker_name = order.get("assigned_worker_name") or "Unassigned"
+                services = str(order.get("services") or "").replace(",", ", ")
                 total_cost = float(order.get("total_cost") or 0)
-                assigned_worker_name = order.get("assigned_worker_name") or "Unassigned"
-                services_text = str(order.get("services") or "").replace(",", ", ")
 
-                created_at_raw = order.get("created_at")
                 try:
-                    created_at_text = datetime.fromisoformat(created_at_raw).strftime("%b %d, %H:%M") if created_at_raw else "N/A"
+                    created_at_text = datetime.fromisoformat(created_at).strftime('%b %d, %Y %H:%M') if created_at else "N/A"
                 except Exception:
-                    created_at_text = str(created_at_raw or "N/A")
+                    created_at_text = str(created_at or "N/A")
+
+                timer_text = "Not started"
+                duration_minutes = None
+
+                if started_at:
+                    try:
+                        start_dt = datetime.fromisoformat(started_at)
+
+                        if status == "in_progress":
+                            st_autorefresh(interval=1000, key=f"timer_refresh_{order_id}")
+                            elapsed = datetime.now() - start_dt
+                            total_seconds = int(elapsed.total_seconds())
+                            hours = total_seconds // 3600
+                            minutes = (total_seconds % 3600) // 60
+                            seconds = total_seconds % 60
+                            timer_text = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+                        elif ended_at:
+                            end_dt = datetime.fromisoformat(ended_at)
+                            elapsed = end_dt - start_dt
+                            total_seconds = int(elapsed.total_seconds())
+                            duration_minutes = round(total_seconds / 60, 1)
+                            hours = total_seconds // 3600
+                            minutes = (total_seconds % 3600) // 60
+                            seconds = total_seconds % 60
+                            timer_text = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+                    except Exception:
+                        timer_text = "Time unavailable"
 
                 status_icon = {
                     "pending": "🟡",
@@ -544,117 +562,131 @@ def render_work_orders():
                     "cancelled": "🔴"
                 }.get(status, "⚪")
 
-                with st.expander(f"{status_icon} {order_id} — {customer_name} — {plate_number}", expanded=False):
-                    top1, top2, top3 = st.columns([2, 2, 1])
+                with st.container():
+                    st.markdown(f"""
+                    <div style="background:#ffffff; padding:16px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <div>
+                                <div style="font-size:18px; font-weight:700;">{status_icon} {order_id}</div>
+                                <div style="color:#64748b;">Created: {created_at_text}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-weight:700; font-size:18px;">GHS {total_cost:,.2f}</div>
+                                <div style="color:#64748b;">{status.replace('_', ' ').title()}</div>
+                            </div>
+                        </div>
 
-                    with top1:
-                        st.markdown(f"**Customer:** {customer_name}")
-                        st.markdown(f"**Phone:** {order.get('customer_phone') or '-'}")
-                        st.markdown(f"**Vehicle:** {vehicle_type}")
-                        st.markdown(f"**Plate:** {plate_number}")
+                        <div style="margin-bottom:8px;"><strong>Customer:</strong> {order.get("customer_name","")}</div>
+                        <div style="margin-bottom:8px;"><strong>Plate:</strong> {order.get("plate_number","")}</div>
+                        <div style="margin-bottom:8px;"><strong>Vehicle:</strong> {order.get("vehicle_type","")}</div>
+                        <div style="margin-bottom:8px;"><strong>Services:</strong> {services}</div>
+                        <div style="margin-bottom:8px;"><strong>Worker:</strong> {worker_name}</div>
+                        <div style="margin-bottom:8px;"><strong>Priority:</strong> {order.get("priority","normal").title()}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                    with top2:
-                        st.markdown(f"**Services:** {services_text or '-'}")
-                        st.markdown(f"**Worker:** {assigned_worker_name}")
-                        st.markdown(f"**Priority:** {priority}")
-                        st.markdown(f"**Created:** {created_at_text}")
+                    timer_col1, timer_col2 = st.columns(2)
+                    with timer_col1:
+                        if status == "pending":
+                            st.warning("⏱ Timer will start when you click Start Work")
+                        elif status == "in_progress":
+                            st.info(f"⏱ Live Timer: {timer_text}")
+                        elif status == "completed":
+                            st.success(f"✅ Total Time: {timer_text}")
+                        else:
+                            st.caption("No timer available")
 
-                    with top3:
-                        st.markdown(f"**Status:** {status.replace('_', ' ').title()}")
-                        st.markdown(f"**Total:** GHS {total_cost:,.2f}")
+                    with timer_col2:
+                        if duration_minutes is not None:
+                            st.metric("Duration (mins)", f"{duration_minutes}")
 
-                    st.markdown("---")
-                    st.markdown("#### Actions")
+                    btn1, btn2, btn3 = st.columns(3)
 
-                    action_col1, action_col2, action_col3 = st.columns(3)
-
-                    with action_col1:
+                    with btn1:
                         if status == "pending":
                             if st.button("▶️ Start Work", key=f"start_{order_id}", use_container_width=True):
                                 db.start_work_order(order_id)
-                                st.success(f"{order_id} started.")
+                                st.success(f"Work order {order_id} started.")
                                 st.rerun()
 
-                        elif status == "in_progress":
+                    with btn2:
+                        if status == "in_progress":
                             if st.button("✅ Complete Work", key=f"complete_{order_id}", use_container_width=True):
                                 db.complete_work_order(order_id)
-                                st.success(f"{order_id} completed.")
+                                st.success(f"Work order {order_id} completed.")
                                 st.rerun()
 
-                    with action_col2:
+                    with btn3:
                         if status in ["pending", "in_progress"]:
-                            if st.button("❌ Cancel Order", key=f"cancel_{order_id}", use_container_width=True):
+                            if st.button("❌ Cancel", key=f"cancel_{order_id}", use_container_width=True):
                                 db.cancel_work_order(order_id, reason="Cancelled from active orders page")
-                                st.success(f"{order_id} cancelled.")
+                                st.success(f"Work order {order_id} cancelled.")
                                 st.rerun()
 
-                    with action_col3:
-                        st.caption("Use the edit form below to update order details.")
+                    with st.expander(f"✏️ Edit {order_id}"):
+                        workers = db.get_all_workers()
+                        worker_names = ["Unassigned"] + [w["name"] for w in workers]
+                        default_worker = worker_name if worker_name in worker_names else "Unassigned"
 
-                    st.markdown("#### Edit Active Order")
+                        with st.form(f"edit_order_form_{order_id}"):
+                            e1, e2 = st.columns(2)
 
-                    default_worker = assigned_worker_name if assigned_worker_name in worker_names else "Unassigned"
+                            with e1:
+                                edit_priority = st.selectbox(
+                                    "Priority",
+                                    ["normal", "high", "low"],
+                                    index=["normal", "high", "low"].index(order.get("priority", "normal"))
+                                    if order.get("priority", "normal") in ["normal", "high", "low"] else 0
+                                )
+                                edit_total_cost = st.number_input(
+                                    "Total Cost (GHS)",
+                                    min_value=0.0,
+                                    value=float(order.get("total_cost") or 0),
+                                    step=10.0
+                                )
 
-                    with st.form(f"edit_order_form_{order_id}"):
-                        edit_col1, edit_col2 = st.columns(2)
+                            with e2:
+                                edit_worker_name = st.selectbox(
+                                    "Assigned Worker",
+                                    worker_names,
+                                    index=worker_names.index(default_worker) if default_worker in worker_names else 0
+                                )
+                                edit_status = st.selectbox(
+                                    "Status",
+                                    ["pending", "in_progress", "completed", "cancelled"],
+                                    index=["pending", "in_progress", "completed", "cancelled"].index(status)
+                                    if status in ["pending", "in_progress", "completed", "cancelled"] else 0
+                                )
 
-                        with edit_col1:
-                            edit_customer_name = st.text_input("Customer Name", value=customer_name)
-                            edit_customer_phone = st.text_input("Customer Phone", value=order.get("customer_phone") or "")
-                            edit_plate_number = st.text_input("Plate Number", value=plate_number).upper()
-                            edit_priority = st.selectbox(
-                                "Priority",
-                                ["normal", "high", "low"],
-                                index=["normal", "high", "low"].index(priority) if priority in ["normal", "high", "low"] else 0
-                            )
+                            save_edit = st.form_submit_button("💾 Save Changes", use_container_width=True)
 
-                        with edit_col2:
-                            edit_total_cost = st.number_input("Total Cost (GHS)", min_value=0.0, value=float(total_cost), step=10.0)
-                            edit_worker_name = st.selectbox(
-                                "Assigned Worker",
-                                worker_names,
-                                index=worker_names.index(default_worker) if default_worker in worker_names else 0
-                            )
-                            edit_status = st.selectbox(
-                                "Status",
-                                ["pending", "in_progress", "completed", "cancelled"],
-                                index=["pending", "in_progress", "completed", "cancelled"].index(status) if status in ["pending", "in_progress", "completed", "cancelled"] else 0
-                            )
+                            if save_edit:
+                                update_payload = {
+                                    "priority": edit_priority,
+                                    "total_cost": edit_total_cost,
+                                    "status": edit_status
+                                }
 
-                        save_edit = st.form_submit_button("💾 Save Changes", use_container_width=True)
+                                if edit_worker_name == "Unassigned":
+                                    update_payload["assigned_worker_id"] = None
+                                    update_payload["assigned_worker_name"] = None
+                                else:
+                                    worker_obj = next((w for w in workers if w["name"] == edit_worker_name), None)
+                                    if worker_obj:
+                                        update_payload["assigned_worker_id"] = worker_obj["id"]
+                                        update_payload["assigned_worker_name"] = worker_obj["name"]
 
-                        if save_edit:
-                            update_payload = {
-                                "priority": edit_priority,
-                                "total_cost": edit_total_cost,
-                                "status": edit_status
-                            }
+                                if edit_status == "in_progress" and not order.get("started_at"):
+                                    update_payload["started_at"] = datetime.now().isoformat()
 
-                            # customer fields are not allowed by your current update_work_order method.
-                            # if you want them editable in DB too, database.py must be expanded.
-                            if edit_worker_name == "Unassigned":
-                                update_payload["assigned_worker_id"] = None
-                                update_payload["assigned_worker_name"] = None
-                            else:
-                                worker_obj = next((w for w in workers if w["name"] == edit_worker_name), None)
-                                if worker_obj:
-                                    update_payload["assigned_worker_id"] = worker_obj["id"]
-                                    update_payload["assigned_worker_name"] = worker_obj["name"]
+                                if edit_status == "completed" and not order.get("ended_at"):
+                                    update_payload["ended_at"] = datetime.now().isoformat()
 
-                            # preserve timestamps when status changes manually
-                            if edit_status == "in_progress" and not order.get("started_at"):
-                                update_payload["started_at"] = datetime.now().isoformat()
-                            if edit_status == "completed" and not order.get("ended_at"):
-                                update_payload["ended_at"] = datetime.now().isoformat()
-
-                            db.update_work_order(order_id, **update_payload)
-                            st.success(f"{order_id} updated successfully.")
-                            st.rerun()
-
-                    st.warning(
-                        f"Customer name/phone/plate shown above are display-only in this form right now. "
-                        f"Your current database update method does not yet allow editing those fields."
-                    )
+                                db.update_work_order(order_id, **update_payload)
+                                st.success(f"{order_id} updated successfully.")
+                                st.rerun()
+        else:
+            st.info("No active orders found matching your criteria")
 
     # ---------------- TAB 3: COMPLETED ORDERS ---------------- #
     with tabs[2]:
@@ -662,66 +694,81 @@ def render_work_orders():
 
         completed_orders = [o for o in db.get_all_work_orders() if o.get("status") == "completed"]
 
-        if not completed_orders:
-            st.info("No completed orders yet.")
-        else:
+        if completed_orders:
             col1, col2, col3 = st.columns(3)
-
             with col1:
                 st.metric("Total Completed", len(completed_orders))
-
             with col2:
                 total_revenue = sum(float(o.get("total_cost") or 0) for o in completed_orders)
                 st.metric("Total Revenue", f"GHS {total_revenue:,.2f}")
-
             with col3:
                 ratings = [float(o.get("customer_rating") or 0) for o in completed_orders if o.get("customer_rating")]
                 avg_rating = sum(ratings) / len(ratings) if ratings else 0
                 st.metric("Average Rating", f"{avg_rating:.1f} ⭐" if ratings else "N/A")
 
-            cleaned_rows = []
-            for o in completed_orders:
-                ended_at_raw = o.get("ended_at")
+            st.markdown("---")
+
+            for order in completed_orders:
+                order_id = str(order.get("id", ""))
+                started_at = order.get("started_at")
+                ended_at = order.get("ended_at")
+                services = str(order.get("services") or "").replace(",", ", ")
+                total_cost = float(order.get("total_cost") or 0)
+                worker_name = order.get("assigned_worker_name") or "Unassigned"
+                customer_rating = order.get("customer_rating") or "N/A"
+                feedback = order.get("customer_feedback") or "-"
+                completion_notes = order.get("completion_notes") or "-"
+
+                started_text = "N/A"
+                ended_text = "N/A"
+                duration_text = "N/A"
+                duration_minutes = None
+
                 try:
-                    ended_at_text = pd.to_datetime(ended_at_raw).strftime("%b %d, %Y %H:%M") if ended_at_raw else "-"
+                    if started_at:
+                        start_dt = datetime.fromisoformat(started_at)
+                        started_text = start_dt.strftime("%b %d, %Y %H:%M")
+                    if ended_at:
+                        end_dt = datetime.fromisoformat(ended_at)
+                        ended_text = end_dt.strftime("%b %d, %Y %H:%M")
+                    if started_at and ended_at:
+                        elapsed = end_dt - start_dt
+                        total_seconds = int(elapsed.total_seconds())
+                        duration_minutes = round(total_seconds / 60, 1)
+                        hours = total_seconds // 3600
+                        minutes = (total_seconds % 3600) // 60
+                        seconds = total_seconds % 60
+                        duration_text = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
                 except Exception:
-                    ended_at_text = str(ended_at_raw or "-")
+                    duration_text = "Unavailable"
 
-                cleaned_rows.append({
-                    "Order ID": o.get("id", ""),
-                    "Customer": o.get("customer_name", ""),
-                    "Plate": o.get("plate_number", ""),
-                    "Vehicle": o.get("vehicle_type", ""),
-                    "Services": str(o.get("services") or "").replace(",", ", "),
-                    "Total (GHS)": float(o.get("total_cost") or 0),
-                    "Worker": o.get("assigned_worker_name") or "Unassigned",
-                    "Completed At": ended_at_text,
-                    "Rating": o.get("customer_rating") or "-"
-                })
+                st.markdown(f"""
+                <div style="background:#ffffff; padding:18px; border-radius:14px; border:1px solid #e2e8f0; margin-bottom:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div>
+                            <div style="font-size:20px; font-weight:700;">✅ {order_id}</div>
+                            <div style="color:#64748b;">{order.get("customer_name","")} — {order.get("plate_number","")}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:18px; font-weight:700;">GHS {total_cost:,.2f}</div>
+                            <div style="color:#16a34a; font-weight:600;">Completed</div>
+                        </div>
+                    </div>
 
-            display_df = pd.DataFrame(cleaned_rows)
-
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-            st.markdown("#### View Completed Order Details")
-            completed_ids = [str(o.get("id")) for o in completed_orders]
-            selected_completed_id = st.selectbox("Select completed order", completed_ids, key="completed_order_select")
-
-            if selected_completed_id:
-                selected_completed = next(o for o in completed_orders if str(o.get("id")) == str(selected_completed_id))
-                st.markdown({
-                    "Order ID": selected_completed.get("id", ""),
-                    "Customer": selected_completed.get("customer_name", ""),
-                    "Phone": selected_completed.get("customer_phone", ""),
-                    "Plate": selected_completed.get("plate_number", ""),
-                    "Vehicle": selected_completed.get("vehicle_type", ""),
-                    "Services": str(selected_completed.get("services") or "").replace(",", ", "),
-                    "Worker": selected_completed.get("assigned_worker_name") or "Unassigned",
-                    "Total Cost": float(selected_completed.get("total_cost") or 0),
-                    "Customer Rating": selected_completed.get("customer_rating") or "-",
-                    "Customer Feedback": selected_completed.get("customer_feedback") or "-",
-                    "Completion Notes": selected_completed.get("completion_notes") or "-"
-                })
+                    <div style="margin-bottom:8px;"><strong>Vehicle:</strong> {order.get("vehicle_type","")}</div>
+                    <div style="margin-bottom:8px;"><strong>Services:</strong> {services}</div>
+                    <div style="margin-bottom:8px;"><strong>Worker:</strong> {worker_name}</div>
+                    <div style="margin-bottom:8px;"><strong>Started:</strong> {started_text}</div>
+                    <div style="margin-bottom:8px;"><strong>Ended:</strong> {ended_text}</div>
+                    <div style="margin-bottom:8px;"><strong>Total Time:</strong> {duration_text}</div>
+                    <div style="margin-bottom:8px;"><strong>Duration (mins):</strong> {duration_minutes if duration_minutes is not None else "N/A"}</div>
+                    <div style="margin-bottom:8px;"><strong>Customer Rating:</strong> {customer_rating}</div>
+                    <div style="margin-bottom:8px;"><strong>Feedback:</strong> {feedback}</div>
+                    <div><strong>Completion Notes:</strong> {completion_notes}</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("No completed orders yet")
 
     # ---------------- TAB 4: REASSIGN JOBS ---------------- #
     with tabs[3]:
@@ -776,116 +823,6 @@ def render_work_orders():
                             st.rerun()
                     else:
                         st.warning("No workers available.")
-    def render_services():
-        """Render services management page"""
-        st.markdown('<h1 class="main-header">Services</h1>', unsafe_allow_html=True)
-        st.markdown('<p class="sub-header">Manage car wash services and pricing</p>', unsafe_allow_html=True)
-    
-    tabs = st.tabs(["📋 All Services", "➕ Add Service", "🚗 Vehicle Types"])
-    
-    # Tab 1: All Services
-    with tabs[0]:
-        st.markdown("### Service Catalog")
-        
-        services = db.get_all_services()
-        vehicle_types = db.get_all_vehicle_types()
-        
-        if services:
-            # Group by vehicle type
-            for vt in vehicle_types:
-                vt_services = [s for s in services if s['vehicle_type'] == vt['name']]
-                
-                if vt_services:
-                    with st.expander(f"🚗 {vt['name']} ({len(vt_services)} services)", expanded=True):
-                        for service in vt_services:
-                            col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
-                            
-                            with col1:
-                                st.markdown(f"**{service['name']}**")
-                                st.caption(service.get('description', ''))
-                            
-                            with col2:
-                                st.markdown(f"⏱ {service['duration_minutes']} min")
-                            
-                            with col3:
-                                st.markdown(f"**GHS {service['base_price']:.0f}**")
-                            
-                            with col4:
-                                if st.button("🗑️", key=f"del_{service['id']}"):
-                                    db.delete_service(service['id'])
-                                    st.rerun()
-        else:
-            st.info("No services found. Add your first service!")
-    
-    # Tab 2: Add Service
-    with tabs[1]:
-        st.markdown("### Add New Service")
-        
-        with st.form("add_service_form", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                name = st.text_input("Service Name *", placeholder="e.g., Premium Exterior Wash")
-                description = st.text_area("Description", placeholder="Describe the service")
-                vehicle_type = st.selectbox("Vehicle Type *", 
-                    [vt['name'] for vt in db.get_all_vehicle_types()])
-            
-            with col2:
-                base_price = st.number_input("Base Price (GHS) *", min_value=0.0, step=10.0)
-                duration = st.number_input("Duration (minutes) *", min_value=5, step=5, value=30)
-            
-            submitted = st.form_submit_button("Add Service", type="primary", use_container_width=True)
-            
-            if submitted:
-                if not name or not vehicle_type or base_price <= 0:
-                    st.error("Please fill in all required fields")
-                else:
-                    service_id = db.add_service(name, description, base_price, duration, vehicle_type)
-                    st.success(f"Service '{name}' added successfully!")
-                    st.rerun()
-    
-    # Tab 3: Vehicle Types
-    with tabs[2]:
-        st.markdown("### Vehicle Types")
-        
-        vehicle_types = db.get_all_vehicle_types()
-        
-        for vt in vehicle_types:
-            col1, col2 = st.columns([4, 1])
-            
-            with col1:
-                st.markdown(f"""
-                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #4facfe;">
-                    <strong>{vt['name']}</strong><br>
-                    <span style="color: #666;">{vt.get('description', 'No description')}</span>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with col2:
-                services_count = len([s for s in db.get_all_services() if s['vehicle_type'] == vt['name']])
-                st.metric("Services", services_count)
-        
-        st.markdown("---")
-        
-        with st.form("add_vehicle_type", clear_on_submit=True):
-            col1, col2 = st.columns([3, 1])
-            
-            with col1:
-                name = st.text_input("New Vehicle Type Name *", placeholder="e.g., Sports Car")
-                description = st.text_input("Description", placeholder="Brief description")
-            
-            with col2:
-                st.markdown("")  # Spacing
-                submitted = st.form_submit_button("Add Type", use_container_width=True)
-            
-            if submitted:
-                if not name:
-                    st.error("Please enter a vehicle type name")
-                else:
-                    db.add_vehicle_type(name, description)
-                    st.success(f"Vehicle type '{name}' added!")
-                    st.rerun()
-
 
 def render_workers():
     """Render worker management page with full CRUD operations"""
