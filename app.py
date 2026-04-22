@@ -775,7 +775,8 @@ def render_work_orders():
                             st.success(f"Order {selected_order} reassigned to {new_worker['name']}.")
                             st.rerun()
                     else:
-                        st.warning("No workers available.")def render_services():
+                        st.warning("No workers available.")
+    def render_services():
     """Render services management page"""
     st.markdown('<h1 class="main-header">Services</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Manage car wash services and pricing</p>', unsafe_allow_html=True)
