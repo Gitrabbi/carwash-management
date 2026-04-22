@@ -24,53 +24,342 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
+#UPDATED CSS
 # Custom CSS
 st.markdown("""
 <style>
+    /* ---------- App background ---------- */
+    .stApp {
+        background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+    }
+
+    /* ---------- Main layout spacing ---------- */
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+        max-width: 1400px;
+    }
+
+    /* ---------- Typography ---------- */
     .main-header {
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: 700;
-        color: #1a365d;
+        color: #111827;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .sub-header {
+        font-size: 0.95rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+        margin-bottom: 0;
+    }
+
+    .section-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0 0 0.75rem 0;
+    }
+
+    /* ---------- Header shell ---------- */
+    .page-shell-header {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        padding: 18px 22px;
         margin-bottom: 1rem;
     }
-    .sub-header {
-        font-size: 1.2rem;
-        color: #718096;
-        margin-bottom: 2rem;
+
+    .page-shell-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
     }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
+
+    .page-shell-header-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .page-shell-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
         color: white;
-        text-align: center;
+        font-weight: 700;
+        flex-shrink: 0;
     }
-    .metric-card.green {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+
+    .icon-blue { background: #2563eb; }
+    .icon-green { background: #16a34a; }
+    .icon-purple { background: #7c3aed; }
+    .icon-orange { background: #ea580c; }
+    .icon-slate { background: #475569; }
+
+    .page-header-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
     }
-    .metric-card.orange {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-    .metric-card.blue {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        padding: 10px 20px;
+
+    .live-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #f0fdf4;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
         font-weight: 600;
     }
-    div[data-testid="stHorizontalBlock"] > div {
-        background-color: #f8fafc;
-        padding: 1rem;
-        border-radius: 8px;
+
+    .live-dot {
+        width: 8px;
+        height: 8px;
+        background: #22c55e;
+        border-radius: 999px;
+        animation: pulseLive 2s infinite;
+    }
+
+    @keyframes pulseLive {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.45; }
+    }
+
+    .date-pill {
+        display: inline-flex;
+        align-items: center;
+        background: #f8fafc;
+        color: #475569;
         border: 1px solid #e2e8f0;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    /* ---------- Reusable cards ---------- */
+    .surface-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        padding: 16px;
+    }
+
+    .metric-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        padding: 18px;
+        transition: all 0.2s ease;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .metric-label {
+        font-size: 0.85rem;
+        color: #6b7280;
+        margin-bottom: 0.4rem;
+    }
+
+    .metric-value {
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.1;
+    }
+
+    .metric-note {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f1f5f9;
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+
+    /* ---------- Tabs ---------- */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 8px 10px 0 10px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        margin-bottom: 1rem;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        height: auto;
+        padding: 12px 16px;
+        font-weight: 600;
+        color: #6b7280;
+        border-bottom: 2px solid transparent;
+    }
+
+    .stTabs [aria-selected="true"] {
+        color: #2563eb !important;
+        border-bottom-color: #2563eb !important;
+    }
+
+    /* ---------- Inputs ---------- */
+    div[data-baseweb="input"] > div,
+    div[data-baseweb="select"] > div,
+    .stTextInput input,
+    .stNumberInput input,
+    .stTextArea textarea {
+        border-radius: 12px !important;
+    }
+
+    /* ---------- Buttons ---------- */
+    .stButton > button,
+    .stDownloadButton > button,
+    .stFormSubmitButton > button {
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        border: 1px solid #dbe3ee !important;
+        box-shadow: none !important;
+    }
+
+    .stButton > button:hover,
+    .stDownloadButton > button:hover,
+    .stFormSubmitButton > button:hover {
+        border-color: #cbd5e1 !important;
+    }
+
+    /* ---------- Dataframe / tables ---------- */
+    .stDataFrame, div[data-testid="stDataFrame"] {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 6px;
+    }
+
+    /* ---------- Expander ---------- */
+    details {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 0.2rem 0.4rem;
+    }
+
+    /* ---------- Sidebar ---------- */
+    section[data-testid="stSidebar"] {
+        background: #ffffff;
+        border-right: 1px solid #e5e7eb;
+    }
+
+    section[data-testid="stSidebar"] .stRadio label {
+        border-radius: 12px;
+    }
+
+    /* ---------- Utility chips ---------- */
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 10px;
+        border-radius: 999px;
+    }
+
+    .chip-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .chip-progress {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .chip-completed {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .chip-cancelled {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    /* ---------- Small cards in columns ---------- */
+    div[data-testid="stHorizontalBlock"] > div .inner-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
 </style>
 """, unsafe_allow_html=True)
 
+#HELPER FUNCTION FOR CSS 
+def render_page_header(title, subtitle, icon="🚗", icon_class="icon-blue", show_live=False):
+    today_text = datetime.now().strftime("%A, %d %B %Y")
+    live_html = """
+        <div class="live-pill">
+            <span class="live-dot"></span>
+            Live Updates
+        </div>
+    """ if show_live else ""
+
+    st.markdown(f"""
+    <div class="page-shell-header">
+        <div class="page-shell-header-row">
+            <div class="page-shell-header-left">
+                <div class="page-shell-icon {icon_class}">{icon}</div>
+                <div>
+                    <h1 class="main-header">{title}</h1>
+                    <p class="sub-header">{subtitle}</p>
+                </div>
+            </div>
+            <div class="page-header-meta">
+                {live_html}
+                <div class="date-pill">📅 {today_text}</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_metric_card(label, value, note=""):
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value">{value}</div>
+        <div class="metric-note">{note}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def status_chip(status):
+    mapping = {
+        "pending": ("🟡", "Pending", "chip-pending"),
+        "in_progress": ("🔵", "In Progress", "chip-progress"),
+        "completed": ("🟢", "Completed", "chip-completed"),
+        "cancelled": ("🔴", "Cancelled", "chip-cancelled"),
+    }
+    icon, label, chip_class = mapping.get(status, ("⚪", str(status).title(), "chip-pending"))
+    return f'<span class="status-chip {chip_class}">{icon} {label}</span>'
 
 def initialize_session_state():
     """Initialize session state variables for persistent data across pages"""
