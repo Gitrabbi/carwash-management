@@ -765,7 +765,9 @@ class CarWashAnalytics:
         
         # Worker recommendations
         if workers:
-            avg_completion = sum(w.get('avg_completion_minutes', 0) for w in workers) / len(workers)
+            avg_completion = (
+    sum((w.get('avg_completion_minutes') or 0) for w in workers) / len(workers)
+    if workers else 0)
             if avg_completion > 120:
                 recommendations.append(
                     "Average job completion time is high. Consider workflow optimization "
