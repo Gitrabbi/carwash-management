@@ -607,8 +607,8 @@ def render_work_orders():
                 col1, col2 = st.columns(2)
                 
             
-                  with col1:
-                       st.markdown("#### Current Assignment")
+                with col1:
+                    st.markdown("#### Current Assignment")
     
     try:
         order_id = order.get('id')
