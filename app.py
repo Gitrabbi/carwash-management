@@ -429,7 +429,7 @@ analytics = CarWashAnalytics(db)
     
     # Date range selector
 col1, col2, col3 = st.columns([2, 1, 1])
-    with col1:
+with col1:
         date_range = st.selectbox(
             "Select Date Range",
             ["Today", "Last 7 Days", "Last 30 Days", "This Month", "All Time"],
