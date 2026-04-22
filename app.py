@@ -437,7 +437,7 @@ with col1:
         )
     
     # Calculate date range
-    today = datetime.now().date()
+      today = datetime.now().date()
     if date_range == "Today":
         date_from = date_to = today.strftime("%Y-%m-%d")
     elif date_range == "Last 7 Days":
