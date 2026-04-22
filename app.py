@@ -602,7 +602,7 @@ def render_work_orders():
                                         format_func=lambda x: order_options[x])
             
             if selected_order:
-            order = next(o for o in in_progress if str(o['id']) == str(selected_order))
+                order = next(o for o in in_progress if str(o['id']) == str(selected_order))
                 
                 col1, col2 = st.columns(2)
                 
