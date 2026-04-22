@@ -688,7 +688,7 @@ def render_work_orders():
         else:
             st.info("No active orders found matching your criteria")
 
-    # ---------------- TAB 3: COMPLETED ORDERS ---------------- #
+       # ---------------- TAB 3: COMPLETED ORDERS ---------------- #
     with tabs[2]:
         st.markdown("### Completed Orders")
 
@@ -742,34 +742,37 @@ def render_work_orders():
                 except Exception:
                     duration_text = "Unavailable"
 
-                st.markdown(f"""
-                <div style="background:#ffffff; padding:18px; border-radius:14px; border:1px solid #e2e8f0; margin-bottom:16px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <div>
-                            <div style="font-size:20px; font-weight:700;">✅ {order_id}</div>
-                            <div style="color:#64748b;">{order.get("customer_name","")} — {order.get("plate_number","")}</div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="font-size:18px; font-weight:700;">GHS {total_cost:,.2f}</div>
-                            <div style="color:#16a34a; font-weight:600;">Completed</div>
-                        </div>
-                    </div>
+                with st.container():
+                    top1, top2 = st.columns([3, 1])
 
-                    <div style="margin-bottom:8px;"><strong>Vehicle:</strong> {order.get("vehicle_type","")}</div>
-                    <div style="margin-bottom:8px;"><strong>Services:</strong> {services}</div>
-                    <div style="margin-bottom:8px;"><strong>Worker:</strong> {worker_name}</div>
-                    <div style="margin-bottom:8px;"><strong>Started:</strong> {started_text}</div>
-                    <div style="margin-bottom:8px;"><strong>Ended:</strong> {ended_text}</div>
-                    <div style="margin-bottom:8px;"><strong>Total Time:</strong> {duration_text}</div>
-                    <div style="margin-bottom:8px;"><strong>Duration (mins):</strong> {duration_minutes if duration_minutes is not None else "N/A"}</div>
-                    <div style="margin-bottom:8px;"><strong>Customer Rating:</strong> {customer_rating}</div>
-                    <div style="margin-bottom:8px;"><strong>Feedback:</strong> {feedback}</div>
-                    <div><strong>Completion Notes:</strong> {completion_notes}</div>
-                </div>
-                """, unsafe_allow_html=True)
+                    with top1:
+                        st.subheader(f"✅ {order_id}")
+                        st.caption(f"{order.get('customer_name', '')} — {order.get('plate_number', '')}")
+
+                    with top2:
+                        st.metric("Amount", f"GHS {total_cost:,.2f}")
+
+                    info1, info2 = st.columns(2)
+
+                    with info1:
+                        st.write(f"**Vehicle:** {order.get('vehicle_type', '')}")
+                        st.write(f"**Services:** {services}")
+                        st.write(f"**Worker:** {worker_name}")
+                        st.write(f"**Customer Rating:** {customer_rating}")
+
+                    with info2:
+                        st.write(f"**Started:** {started_text}")
+                        st.write(f"**Ended:** {ended_text}")
+                        st.write(f"**Total Time:** {duration_text}")
+                        st.write(f"**Duration (mins):** {duration_minutes if duration_minutes is not None else 'N/A'}")
+
+                    st.write(f"**Feedback:** {feedback}")
+                    st.write(f"**Completion Notes:** {completion_notes}")
+
+                    st.markdown("---")
         else:
             st.info("No completed orders yet")
-
+            
     # ---------------- TAB 4: REASSIGN JOBS ---------------- #
     with tabs[3]:
         st.markdown("### Reassign Jobs")
