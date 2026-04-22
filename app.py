@@ -503,7 +503,7 @@ def render_work_orders():
             orders = [o for o in orders if o.get('assigned_worker_name') == worker_filter]
         
        if search:
-    orders = [o for o in orders if 
+            orders = [o for o in orders if 
              search.lower() in str(o['id']).lower() or 
              search.lower() in o['customer_name'].lower() or
              search.lower() in o['plate_number'].lower()]
