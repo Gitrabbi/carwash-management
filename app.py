@@ -827,6 +827,118 @@ def render_work_orders():
                     else:
                         st.warning("No workers available.")
 
+
+def render_services():
+    """Render services management page"""
+    st.markdown('<h1 class="main-header">Services</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Manage car wash services and pricing</p>', unsafe_allow_html=True)
+    
+    tabs = st.tabs(["📋 All Services", "➕ Add Service", "🚗 Vehicle Types"])
+    
+    # Tab 1: All Services
+    with tabs[0]:
+        st.markdown("### Service Catalog")
+        
+        services = db.get_all_services()
+        vehicle_types = db.get_all_vehicle_types()
+        
+        if services:
+            for vt in vehicle_types:
+                vt_services = [s for s in services if s['vehicle_type'] == vt['name']]
+                
+                if vt_services:
+                    with st.expander(f"🚗 {vt['name']} ({len(vt_services)} services)", expanded=True):
+                        for service in vt_services:
+                            col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
+                            
+                            with col1:
+                                st.markdown(f"**{service['name']}**")
+                                st.caption(service.get('description', ''))
+                            
+                            with col2:
+                                st.markdown(f"⏱ {service['duration_minutes']} min")
+                            
+                            with col3:
+                                st.markdown(f"**GHS {float(service['base_price'] or 0):.0f}**")
+                            
+                            with col4:
+                                if st.button("🗑️", key=f"del_{service['id']}"):
+                                    db.delete_service(service['id'])
+                                    st.rerun()
+        else:
+            st.info("No services found. Add your first service!")
+    
+    # Tab 2: Add Service
+    with tabs[1]:
+        st.markdown("### Add New Service")
+        
+        with st.form("add_service_form", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                name = st.text_input("Service Name *", placeholder="e.g., Premium Exterior Wash")
+                description = st.text_area("Description", placeholder="Describe the service")
+                vehicle_type = st.selectbox(
+                    "Vehicle Type *",
+                    [vt['name'] for vt in db.get_all_vehicle_types()]
+                )
+            
+            with col2:
+                base_price = st.number_input("Base Price (GHS) *", min_value=0.0, step=10.0)
+                duration = st.number_input("Duration (minutes) *", min_value=5, step=5, value=30)
+            
+            submitted = st.form_submit_button("Add Service", type="primary", use_container_width=True)
+            
+            if submitted:
+                if not name or not vehicle_type or base_price <= 0:
+                    st.error("Please fill in all required fields")
+                else:
+                    db.add_service(name, description, base_price, duration, vehicle_type)
+                    st.success(f"Service '{name}' added successfully!")
+                    st.rerun()
+    
+    # Tab 3: Vehicle Types
+    with tabs[2]:
+        st.markdown("### Vehicle Types")
+        
+        vehicle_types = db.get_all_vehicle_types()
+        
+        for vt in vehicle_types:
+            col1, col2 = st.columns([4, 1])
+            
+            with col1:
+                st.markdown(f"""
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #4facfe;">
+                    <strong>{vt['name']}</strong><br>
+                    <span style="color: #666;">{vt.get('description', 'No description')}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                services_count = len([s for s in db.get_all_services() if s['vehicle_type'] == vt['name']])
+                st.metric("Services", services_count)
+        
+        st.markdown("---")
+        
+        with st.form("add_vehicle_type", clear_on_submit=True):
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                name = st.text_input("New Vehicle Type Name *", placeholder="e.g., Sports Car")
+                description = st.text_input("Description", placeholder="Brief description")
+            
+            with col2:
+                st.markdown("")
+                submitted = st.form_submit_button("Add Type", use_container_width=True)
+            
+            if submitted:
+                if not name:
+                    st.error("Please enter a vehicle type name")
+                else:
+                    db.add_vehicle_type(name, description)
+                    st.success(f"Vehicle type '{name}' added!")
+                    st.rerun()
+
 def render_workers():
     """Render worker management page with full CRUD operations"""
     st.markdown('<h1 class="main-header">Workers</h1>', unsafe_allow_html=True)
