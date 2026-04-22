@@ -777,9 +777,9 @@ def render_work_orders():
                     else:
                         st.warning("No workers available.")
     def render_services():
-    """Render services management page"""
-    st.markdown('<h1 class="main-header">Services</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Manage car wash services and pricing</p>', unsafe_allow_html=True)
+        """Render services management page"""
+        st.markdown('<h1 class="main-header">Services</h1>', unsafe_allow_html=True)
+        st.markdown('<p class="sub-header">Manage car wash services and pricing</p>', unsafe_allow_html=True)
     
     tabs = st.tabs(["📋 All Services", "➕ Add Service", "🚗 Vehicle Types"])
     
