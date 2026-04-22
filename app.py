@@ -387,10 +387,9 @@ def render_work_orders():
     st.markdown('<h1 class="main-header">Work Orders</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Create and manage car wash work orders</p>', unsafe_allow_html=True)
     
-    # Tabs for different sections
     tabs = st.tabs(["📝 New Order", "📋 Active Orders", "✅ Completed", "🔄 Reassign Jobs"])
     
-    # Tab 1: Create New Order
+    # ------------------ TAB 1: NEW ORDER ------------------ #
     with tabs[0]:
         st.markdown("### Create New Work Order")
         
@@ -399,60 +398,42 @@ def render_work_orders():
             
             with col1:
                 st.markdown("#### Customer Information")
-                customer_name = st.text_input("Customer Name *", placeholder="Enter customer name")
-                customer_phone = st.text_input("Customer Phone", placeholder="Enter phone number")
+                customer_name = st.text_input("Customer Name *")
+                customer_phone = st.text_input("Customer Phone")
                 
                 st.markdown("#### Vehicle Information")
-                vehicle_type = st.selectbox("Vehicle Type *", 
-                    [vt['name'] for vt in db.get_all_vehicle_types()])
-                vehicle_make = st.text_input("Vehicle Make", placeholder="e.g., Toyota")
-                vehicle_model = st.text_input("Vehicle Model", placeholder="e.g., Camry")
-                plate_number = st.text_input("Plate Number *", placeholder="Enter plate number").upper()
+                vehicle_type = st.selectbox("Vehicle Type *", [vt['name'] for vt in db.get_all_vehicle_types()])
+                vehicle_make = st.text_input("Vehicle Make")
+                vehicle_model = st.text_input("Vehicle Model")
+                plate_number = st.text_input("Plate Number *").upper()
             
             with col2:
                 st.markdown("#### Services")
-                
-                # Get ALL services (don't filter by vehicle type)
                 services = db.get_all_services()
                 
-                if services:
-                    selected_services = []
-                    service_costs = {}
-                    
-                    for service in services:
-                        checked = st.checkbox(
-                            f"{service['name']} - GHS {service['base_price']:.0f}",
-                            value=False,
-                            key=f"service_{service['id']}"
-                        )
-                        if checked:
-                            selected_services.append(service['name'])
-                            service_costs[service['name']] = service['base_price']
-                    
-                    total_cost = sum(service_costs.values())
-                    
-                    st.markdown("---")
-                    st.markdown(f"**Total Cost: GHS {total_cost:.2f}**")
-                else:
-                    st.warning("No services available. Please add services first.")
-                    selected_services = []
-                    total_cost = 0
+                selected_services = []
+                total_cost = 0
+                
+                for service in services:
+                    if st.checkbox(f"{service['name']} - GHS {service['base_price']:.0f}", key=f"service_{service['id']}"):
+                        selected_services.append(service['name'])
+                        total_cost += service['base_price']
+                
+                st.markdown(f"**Total Cost: GHS {total_cost:.2f}**")
                 
                 st.markdown("#### Order Details")
                 priority = st.selectbox("Priority", ["normal", "high", "low"])
-                assigned_worker = st.selectbox("Assign Worker", 
-                    ["None"] + [w['name'] for w in db.get_all_workers()])
+                assigned_worker = st.selectbox("Assign Worker", ["None"] + [w['name'] for w in db.get_all_workers()])
             
-            submitted = st.form_submit_button("Create Work Order", type="primary", use_container_width=True)
+            submitted = st.form_submit_button("Create Work Order")
             
             if submitted:
-                if not customer_name or not plate_number or not vehicle_type:
-                    st.error("Please fill in all required fields")
+                if not customer_name or not plate_number:
+                    st.error("Please fill required fields")
                 else:
                     worker_info = None
                     if assigned_worker != "None":
-                        workers = db.get_all_workers()
-                        worker = next((w for w in workers if w['name'] == assigned_worker), None)
+                        worker = next((w for w in db.get_all_workers() if w['name'] == assigned_worker), None)
                         if worker:
                             worker_info = (worker['id'], worker['name'])
                     
@@ -470,181 +451,93 @@ def render_work_orders():
                         assigned_worker_name=worker_info[1] if worker_info else None
                     )
                     
-                    st.success(f"Work Order {order_id} created successfully!")
-                    st.balloons()
-    
-    # Tab 2: Active Orders
+                    st.success(f"Work Order {order_id} created!")
+
+    # ------------------ TAB 2: ACTIVE ORDERS ------------------ #
     with tabs[1]:
         st.markdown("### Active Orders")
         
-        # Filters
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            status_filter = st.multiselect(
-                "Filter by Status",
-                ["pending", "in_progress", "completed", "cancelled"],
-                default=["pending", "in_progress"]
-            )
-        with col2:
-            worker_filter = st.selectbox(
-                "Filter by Worker",
-                ["All Workers"] + [w['name'] for w in db.get_all_workers()]
-            )
-        with col3:
-            search = st.text_input("Search Order ID or Customer", placeholder="Enter search term")
-        
-        # Fetch and filter orders
+        search = st.text_input("Search")
         orders = db.get_all_work_orders()
         
-        if status_filter:
-            orders = [o for o in orders if o['status'] in status_filter]
-        
-        if worker_filter != "All Workers":
-            orders = [o for o in orders if o.get('assigned_worker_name') == worker_filter]
-        
         if search:
-            orders = [o for o in orders if 
-             search.lower() in str(o['id']).lower() or 
-             search.lower() in o['customer_name'].lower() or
-             search.lower() in o['plate_number'].lower()]
-        if orders:
-            # Display orders
-            for order in orders[:20]:
-                with st.container():
-                    col1, col2, col3, col4 = st.columns([1, 2, 1, 1])
-                    
-                    with col1:
-                        st.markdown(f"**{order['id']}**")
-                        st.caption(f"📅 {datetime.fromisoformat(order['created_at']).strftime('%b %d, %H:%M')}")
-                    
-                    with col2:
-                        st.markdown(f"""
-                        **{order['customer_name']}** - {order['plate_number']}<br>
-                        <span style="color: #666;">{order['vehicle_type']} | {order['services']}</span>
-                        """, unsafe_allow_html=True)
-                    
-                    with col3:
-                        status_colors = {
-                            'pending': '🟡',
-                            'in_progress': '🔵',
-                            'completed': '🟢',
-                            'cancelled': '🔴'
-                        }
-                        status_icon = status_colors.get(order['status'], '⚪')
-                        st.markdown(f"{status_icon} {order['status'].replace('_', ' ').title()}")
-                        
-                        if order.get('assigned_worker_name'):
-                            st.caption(f"👷 {order['assigned_worker_name']}")
-                    
-                    with col4:
-                        st.markdown(f"**GHS {order['total_cost']:,.0f}**")
-                        
-                        # Action buttons
-                        if order['status'] == 'pending':
-                            if st.button("▶️ Start", key=f"start_{order['id']}"):
-                                db.start_work_order(order['id'])
-                                st.rerun()
-                        
-                        elif order['status'] == 'in_progress':
-                            if st.button("✅ Complete", key=f"complete_{order['id']}"):
-                                db.complete_work_order(order['id'])
-                                st.rerun()
-            
-            st.markdown(f"Showing {min(20, len(orders))} of {len(orders)} orders")
-        else:
-            st.info("No active orders found matching your criteria")
-    
-    # Tab 3: Completed Orders
+            orders = [
+                o for o in orders
+                if search.lower() in str(o['id']).lower()
+                or search.lower() in o['customer_name'].lower()
+            ]
+        
+        for order in orders[:20]:
+            st.markdown(f"**{order['id']} - {order['customer_name']}**")
+
+    # ------------------ TAB 3: COMPLETED ------------------ #
     with tabs[2]:
         st.markdown("### Completed Orders")
-        
-        completed_orders = [o for o in db.get_all_work_orders() if o['status'] == 'completed']
-        
-        if completed_orders:
-            # Summary stats
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Completed", len(completed_orders))
-            with col2:
-                total_revenue = sum(o['total_cost'] for o in completed_orders)
-                st.metric("Total Revenue", f"GHS {total_revenue:,.0f}")
-            with col3:
-                avg_rating = sum(o.get('customer_rating', 0) or 0 for o in completed_orders) / len(completed_orders)
-                st.metric("Average Rating", f"{avg_rating:.1f} ⭐")
-            
-            # Display completed orders table
-            df = pd.DataFrame(completed_orders)
-            display_df = df[[
-                'id', 'customer_name', 'plate_number', 'vehicle_type',
-                'services', 'total_cost', 'assigned_worker_name', 'ended_at', 'customer_rating'
-            ]].copy()
-            display_df['ended_at'] = pd.to_datetime(display_df['ended_at']).dt.strftime('%b %d, %H:%M')
-            display_df.columns = ['Order ID', 'Customer', 'Plate', 'Vehicle', 'Services', 
-                                 'Total (GHS)', 'Worker', 'Completed At', 'Rating']
-            
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No completed orders yet")
-    
-    # Tab 4: Reassign Jobs
+        completed = [o for o in db.get_all_work_orders() if o['status'] == 'completed']
+        st.write(completed)
+
+    # ------------------ TAB 4: REASSIGN ------------------ #
     with tabs[3]:
         st.markdown("### Reassign Jobs")
-        st.markdown("Transfer work orders between workers")
         
-        # Get in-progress orders
         in_progress = [o for o in db.get_all_work_orders() if o['status'] in ['pending', 'in_progress']]
         
         if in_progress:
-            order_options = {o['id']: f"{o['id']} - {o['customer_name']} ({o.get('assigned_worker_name', 'Unassigned')})" 
-                           for o in in_progress}
+            order_options = {
+                str(o['id']): f"{o['id']} - {o['customer_name']} ({o.get('assigned_worker_name', 'Unassigned')})"
+                for o in in_progress
+            }
             
-            selected_order = st.selectbox("Select Order to Reassign", options=list(order_options.keys()),
-                                        format_func=lambda x: order_options[x])
+            selected_order = st.selectbox(
+                "Select Order",
+                options=list(order_options.keys()),
+                format_func=lambda x: order_options[x]
+            )
             
             if selected_order:
-                order = next(o for o in in_progress if str(o['id']) == str(selected_order))
+                order = next(o for o in in_progress if str(o['id']) == selected_order)
                 
                 col1, col2 = st.columns(2)
                 
-            
+                # -------- LEFT: CURRENT -------- #
                 with col1:
                     st.markdown("#### Current Assignment")
-    
-    try:
-        order_id = order.get('id')
-        customer = order.get('customer_name')
-        worker = order.get('assigned_worker_name') or 'Unassigned'
-    except Exception:
-        st.error("Error reading order data")
-        st.write(order)
-        return
-
-    st.info(f"""
-    **Order:** {order_id}<br>
-    **Customer:** {customer}<br>
-    **Current Worker:** {worker}
-    """, unsafe_allow_html=True)
+                    
+                    try:
+                        order_id = order.get('id')
+                        customer = order.get('customer_name')
+                        worker = order.get('assigned_worker_name') or "Unassigned"
+                    except:
+                        st.error("Error reading order")
+                        st.write(order)
+                        return
+                    
+                    st.info(f"""
+                    **Order:** {order_id}<br>
+                    **Customer:** {customer}<br>
+                    **Current Worker:** {worker}
+                    """, unsafe_allow_html=True)
                 
+                # -------- RIGHT: NEW -------- #
                 with col2:
                     st.markdown("#### New Assignment")
+                    
                     workers = db.get_all_workers()
-                    worker_options = {w['id']: f"{w['name']} ({w['role']})" for w in workers}
+                    worker_options = {w['id']: w['name'] for w in workers}
                     
                     new_worker_id = st.selectbox(
-                        "Select New Worker",
+                        "Select Worker",
                         options=list(worker_options.keys()),
                         format_func=lambda x: worker_options[x]
                     )
                     
-                    if st.button("Reassign Job", type="primary"):
+                    if st.button("Reassign Job"):
                         new_worker = next(w for w in workers if w['id'] == new_worker_id)
                         db.assign_worker_to_order(selected_order, new_worker['id'], new_worker['name'])
-                        st.success(f"Order {selected_order} reassigned to {new_worker['name']}")
+                        st.success(f"Reassigned to {new_worker['name']}")
                         st.rerun()
         else:
-            st.info("No orders available for reassignment")
-
-
+            st.info("No orders available")
 def render_services():
     """Render services management page"""
     st.markdown('<h1 class="main-header">Services</h1>', unsafe_allow_html=True)
