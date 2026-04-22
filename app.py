@@ -425,7 +425,7 @@ render_page_header(
 )
     
     # Initialize analytics
-      analytics = CarWashAnalytics(db)
+    analytics = CarWashAnalytics(db)
     
     # Date range selector
     col1, col2, col3 = st.columns([2, 1, 1])
