@@ -598,7 +598,8 @@ class CarWashAnalytics:
         # Rating-based recommendations
         if metrics.get('avg_rating', 0) < 4.0:
             recommendations.append(
-                f"Average rating ({metrics['avg_rating']}) could be improved. Focus on "
+                f"Average rating ({metrics.get('avg_rating', 0)}) could be improved. Focus on "
+                
                 "service quality consistency and customer interaction training."
             )
         
