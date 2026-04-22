@@ -502,12 +502,11 @@ def render_work_orders():
         if worker_filter != "All Workers":
             orders = [o for o in orders if o.get('assigned_worker_name') == worker_filter]
         
-        if search:
-            orders = [o for o in orders if 
-                     search.lower() in o['id'].lower() or 
-                     search.lower() in o['customer_name'].lower() or
-                     search.lower() in o['plate_number'].lower()]
-        
+       if search:
+    orders = [o for o in orders if 
+             search.lower() in str(o['id']).lower() or 
+             search.lower() in o['customer_name'].lower() or
+             search.lower() in o['plate_number'].lower()]
         if orders:
             # Display orders
             for order in orders[:20]:
@@ -603,17 +602,28 @@ def render_work_orders():
                                         format_func=lambda x: order_options[x])
             
             if selected_order:
-                order = next(o for o in in_progress if o['id'] == selected_order)
+          order = next(o for o in in_progress if str(o['id']) == str(selected_order))
                 
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    st.markdown("#### Current Assignment")
-                    st.info(f"""
-                    **Order:** {order['id']}<br>
-                    **Customer:** {order['customer_name']}<br>
-                    **Current Worker:** {order.get('assigned_worker_name') or 'Unassigned'}
-                    """, unsafe_allow_html=True)
+                    with col1:
+    st.markdown("#### Current Assignment")
+    
+    try:
+        order_id = order.get('id')
+        customer = order.get('customer_name')
+        worker = order.get('assigned_worker_name') or 'Unassigned'
+    except Exception:
+        st.error("Error reading order data")
+        st.write(order)
+        return
+
+    st.info(f"""
+    **Order:** {order_id}<br>
+    **Customer:** {customer}<br>
+    **Current Worker:** {worker}
+    """, unsafe_allow_html=True)
                 
                 with col2:
                     st.markdown("#### New Assignment")
