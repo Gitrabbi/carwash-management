@@ -416,28 +416,30 @@ def sidebar_navigation():
 
 def render_dashboard():
     """Render main dashboard with key metrics and visualizations"""
-render_page_header(
-    title="Car Wash Dashboard",
-    subtitle="Real-time operations overview",
-    icon="🚘",
-    icon_class="icon-blue",
-    show_live=True
-)
-    
+
+    render_page_header(
+        title="Car Wash Dashboard",
+        subtitle="Real-time operations overview",
+        icon="🚘",
+        icon_class="icon-blue",
+        show_live=True
+    )
+
     # Initialize analytics
-analytics = CarWashAnalytics(db)
-    
+    analytics = CarWashAnalytics(db)
+
     # Date range selector
-col1, col2, col3 = st.columns([2, 1, 1])
-with col1:
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
         date_range = st.selectbox(
             "Select Date Range",
             ["Today", "Last 7 Days", "Last 30 Days", "This Month", "All Time"],
             label_visibility="collapsed"
         )
-    
+
     # Calculate date range
-      today = datetime.now().date()
+    today = datetime.now().date()
+
     if date_range == "Today":
         date_from = date_to = today.strftime("%Y-%m-%d")
     elif date_range == "Last 7 Days":
@@ -450,8 +452,7 @@ with col1:
         date_from = today.replace(day=1).strftime("%Y-%m-%d")
         date_to = today.strftime("%Y-%m-%d")
     else:
-        date_from = date_to = None
-    
+        date_from = date_to = None    
     # Fetch data
     stats = db.get_order_statistics(date_from, date_to)
     worker_performance = db.get_worker_performance(date_from, date_to)
@@ -680,11 +681,15 @@ with col1:
 
 def render_work_orders():
     """Render work orders management page with full CRUD operations"""
-    st.markdown('<h1 class="main-header">Work Orders</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Create and manage car wash work orders</p>', unsafe_allow_html=True)
+
+    render_page_header(
+        title="Work Orders",
+        subtitle="Manage vehicle wash orders and job assignments",
+        icon="🧾",
+        icon_class="icon-green"
+    )
 
     tabs = st.tabs(["📝 New Order", "📋 Active Orders", "✅ Completed", "🔄 Reassign Jobs"])
-
     # ---------------- TAB 1: NEW ORDER ---------------- #
     with tabs[0]:
         st.markdown("### Create New Work Order")
@@ -1124,11 +1129,15 @@ def render_work_orders():
 
 def render_services():
     """Render services management page"""
-    st.markdown('<h1 class="main-header">Services</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Manage car wash services and pricing</p>', unsafe_allow_html=True)
-    
+
+    render_page_header(
+        title="Service Management",
+        subtitle="Manage vehicle types, services, and pricing",
+        icon="⚙️",
+        icon_class="icon-blue"
+    )
+
     tabs = st.tabs(["📋 All Services", "➕ Add Service", "🚗 Vehicle Types"])
-    
     # Tab 1: All Services
     with tabs[0]:
         st.markdown("### Service Catalog")
@@ -1235,9 +1244,14 @@ def render_services():
 
 def render_workers():
     """Render worker management page with full CRUD operations"""
-    st.markdown('<h1 class="main-header">Workers</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Manage your car wash workforce</p>', unsafe_allow_html=True)
-    
+
+    render_page_header(
+        title="Workers",
+        subtitle="Manage your workforce and attendance",
+        icon="👷",
+        icon_class="icon-orange"
+    )
+
     tabs = st.tabs(["👷 All Workers", "➕ Add Worker", "📅 Attendance", "⏰ Clock In/Out"])
     
     # Tab 1: All Workers
@@ -1430,9 +1444,15 @@ def render_workers():
 
 def render_analytics():
     """Render analytics and AI insights page"""
-    st.markdown('<h1 class="main-header">Analytics & AI Insights</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Advanced analytics and predictive insights for your business</p>', unsafe_allow_html=True)
-    
+
+    render_page_header(
+        title="Analytics & AI Insights",
+        subtitle="Advanced analytics and predictive insights for your business",
+        icon="📈",
+        icon_class="icon-purple",
+        show_live=True
+    )
+
     analytics = CarWashAnalytics(db)
     
     tabs = st.tabs(["📊 Business Overview", "👷 Worker Analysis", "⏱️ Time Performance", "⭐ Customer Experience"])
@@ -1743,12 +1763,16 @@ def render_analytics():
         for rec in recommendations:
             st.markdown(f"- {rec}")
 
-
 def render_reports():
     """Render reports and export page"""
-    st.markdown('<h1 class="main-header">Reports</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Generate and export detailed reports</p>', unsafe_allow_html=True)
-    
+
+    render_page_header(
+        title="Reports",
+        subtitle="Generate and export detailed reports",
+        icon="📄",
+        icon_class="icon-slate"
+    )
+
     report_gen = ReportGenerator(db)
     
     tabs = st.tabs(["📋 Work Orders", "👷 Workers", "💰 Financial", "📅 Attendance", "📆 Daily Summary"])
