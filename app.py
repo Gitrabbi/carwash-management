@@ -416,7 +416,7 @@ def sidebar_navigation():
 
 def render_dashboard():
     """Render main dashboard with key metrics and visualizations"""
-   render_page_header(
+render_page_header(
     title="Car Wash Dashboard",
     subtitle="Real-time operations overview",
     icon="🚘",
