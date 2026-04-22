@@ -58,13 +58,15 @@ class ReportGenerator:
             textColor=colors.HexColor('#718096')
         ))
         
-        self.styles.add(ParagraphStyle(
-            name='BodyText',
-            parent=self.styles['Normal'],
-            fontSize=10,
-            spaceAfter=10,
-            alignment=TA_LEFT
-        ))
+        # Only add BodyTextCustom if BodyText doesn't already exist
+        if 'BodyText' not in self.styles:
+            self.styles.add(ParagraphStyle(
+                name='BodyTextCustom',
+                parent=self.styles['Normal'],
+                fontSize=10,
+                spaceAfter=10,
+                alignment=TA_LEFT
+            ))
     
     def generate_work_orders_report(self, date_from: str = None, date_to: str = None,
                                    status: str = None, format: str = 'csv') -> Dict:
